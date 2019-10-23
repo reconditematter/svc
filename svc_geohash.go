@@ -1,0 +1,98 @@
+package svc
+
+import (
+	"encoding/json"
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+	"github.com/reconditematter/geomys"
+	"math"
+	"net/http"
+	"os"
+	"strconv"
+)
+
+// GeoHash -- configures the service for the router `R`.
+func GeoHash(R *mux.Router) {
+	R.Handle("/api/reconditematter/geohash", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageGeoHash)))
+	R.Handle("/api/reconditematter/geohash/{length}/lat/{lat}/lon/{lon}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(geohash)))
+}
+
+func usageGeoHash(w http.ResponseWriter, r *http.Request) {
+	doc := `
+/geohash/{length}/lat/{lat}/lon/{lon} -- returns the geohash of the given {length} for the geographic coordinates {lat},{lon}.
+
+Input:
+{length} = 5,7,9,11,13,15 -- the length of the computed geohash
+{lat} -- the geographic latitude, must be in [-90,90]
+{lon} -- the geographic longitude, must be in [-180,180]
+
+Output:
+{
+ "lat":___,
+ "lon":___,
+ "geohash":___,
+ "res_d":___,
+ "res_m":___
+}
+
+{res_d} -- the resolution of the returned geohash measured in degrees
+{res_m} -- the resolution of the returned geohash measured in meters
+           (on the equator, assuming the equatorial radius 6378137 m)
+`
+	//
+	HS200t(w, []byte(doc))
+}
+
+func geohash(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	//
+	length, err := strconv.ParseInt(vars["length"], 10, 64)
+	if err != nil {
+		HS400(w)
+		return
+	}
+	if !(length == 5 || length == 7 || length == 9 || length == 11 || length == 13 || length == 15) {
+		HS400(w)
+		return
+	}
+	//
+	lat, err := strconv.ParseFloat(vars["lat"], 64)
+	if err != nil {
+		HS400(w)
+		return
+	}
+	if !(-90 <= lat && lat <= 90) {
+		HS400(w)
+		return
+	}
+	//
+	lon, err := strconv.ParseFloat(vars["lon"], 64)
+	if err != nil {
+		HS400(w)
+		return
+	}
+	if !(-180 <= lon && lon <= 180) {
+		HS400(w)
+		return
+	}
+	//
+	hash, resd := geomys.GeoHash(int(length), geomys.Geo(lat, lon))
+	// WGS1984 equatorial radius
+	resm := 2 * math.Pi * 6378137 * (resd / 360)
+	//
+	resultx := struct {
+		Lat     float64 `json:"lat"`
+		Lon     float64 `json:"lon"`
+		Geohash string  `json:"geohash"`
+		Resd    float64 `json:"res_d"`
+		Resm    float64 `json:"res_m"`
+	}{lat, lon, hash, resd, resm}
+	//
+	jresult, err := json.Marshal(resultx)
+	if err != nil {
+		HS500(w)
+		return
+	}
+	//
+	HS200j(w, jresult)
+}
