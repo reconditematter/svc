@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 // RandomNames -- configures the service for the router `R`.
@@ -29,6 +30,7 @@ Input:
 
 Output:
 {
+ "duration_usec":___,
  "count":___,
  "fcount":___,
  "mcount":___,
@@ -56,6 +58,7 @@ func getnamesm(w http.ResponseWriter, r *http.Request) {
 }
 
 func getnames(w http.ResponseWriter, r *http.Request, gengen int) {
+	start := time.Now()
 	vars := mux.Vars(r)
 	count, err := strconv.ParseInt(vars["count"], 10, 64)
 	if err != nil {
@@ -77,11 +80,12 @@ func getnames(w http.ResponseWriter, r *http.Request, gengen int) {
 	}
 	//
 	resultx := struct {
-		Count  int                `json:"count"`
-		FCount int                `json:"fcount"`
-		MCount int                `json:"mcount"`
-		Names  []rnames.HumanName `json:"names"`
-	}{len(result), fcount, len(result) - fcount, result}
+		Duration int64              `json:"duration_usec"`
+		Count    int                `json:"count"`
+		FCount   int                `json:"fcount"`
+		MCount   int                `json:"mcount"`
+		Names    []rnames.HumanName `json:"names"`
+	}{time.Since(start).Microseconds(), len(result), fcount, len(result) - fcount, result}
 	//
 	jresult, err := json.Marshal(resultx)
 	if err != nil {
