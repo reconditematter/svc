@@ -30,7 +30,7 @@ Input:
 
 Output:
 {
- "duration_usec":___,
+ "duration_msec":___,
  "count":___,
  "fcount":___,
  "mcount":___,
@@ -80,12 +80,12 @@ func getnames(w http.ResponseWriter, r *http.Request, gengen int) {
 	}
 	//
 	resultx := struct {
-		Duration int64              `json:"duration_usec"`
+		Duration int64              `json:"duration_msec"`
 		Count    int                `json:"count"`
 		FCount   int                `json:"fcount"`
 		MCount   int                `json:"mcount"`
 		Names    []rnames.HumanName `json:"names"`
-	}{time.Since(start).Microseconds(), len(result), fcount, len(result) - fcount, result}
+	}{time.Since(start).Milliseconds(), len(result), fcount, len(result) - fcount, result}
 	//
 	jresult, err := json.Marshal(resultx)
 	if err != nil {

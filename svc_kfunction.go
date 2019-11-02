@@ -30,7 +30,7 @@ Input:
 
 Output:
 {
- "duration_usec":___,
+ "duration_msec":___,
  "count":___,
  "kfunction":[K(0),...,K(180)]
 }
@@ -89,10 +89,10 @@ func computeKFunction(w http.ResponseWriter, r *http.Request) {
 	compute()
 	//
 	resultx := struct {
-		Duration  int64      `json:"duration_usec"`
+		Duration  int64      `json:"duration_msec"`
 		Count     int        `json:"count"`
 		Kfunction [D]float64 `json:"kfunction"`
-	}{time.Since(start).Microseconds(), int(count), h}
+	}{time.Since(start).Milliseconds(), int(count), h}
 	//
 	jresult, err := json.Marshal(resultx)
 	if err != nil {
