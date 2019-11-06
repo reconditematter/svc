@@ -17,12 +17,18 @@ func GeoHash(R *mux.Router) {
 	R.Handle("/api/reconditematter/geohash/{length}/lat/{lat}/lon/{lon}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(geohash)))
 }
 
+// HashGeo -- configures the service for the router `R`.
+func HashGeo(R *mux.Router) {
+	R.Handle("/api/reconditematter/hashgeo", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageHashGeo)))
+	R.Handle("/api/reconditematter/hashgeo/{hash}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(hashgeo)))
+}
+
 func usageGeoHash(w http.ResponseWriter, r *http.Request) {
 	doc := `
 /geohash/{length}/lat/{lat}/lon/{lon} -- returns the geohash of the given {length} for the geographic coordinates {lat},{lon}.
 
 Input:
-{length} = 5,7,9,11,13,15 -- the length of the computed geohash
+{length} = 3,5,7,9,11,13,15 -- the length of the computed geohash
 {lat} -- the geographic latitude, must be in [-90,90]
 {lon} -- the geographic longitude, must be in [-180,180]
 
@@ -43,6 +49,24 @@ Output:
 	HS200t(w, []byte(doc))
 }
 
+func usageHashGeo(w http.ResponseWriter, r *http.Request) {
+	doc := `
+/hashgeo/{hash} -- returns the geographic coordinates encoded in the given {hash}.
+
+Input:
+{hash} -- the geohash to decode
+
+Output:
+{
+ "lat":___,
+ "lon":___,
+ "geohash":___
+}
+`
+	//
+	HS200t(w, []byte(doc))
+}
+
 func geohash(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	//
@@ -51,7 +75,7 @@ func geohash(w http.ResponseWriter, r *http.Request) {
 		HS400(w)
 		return
 	}
-	if !(length == 5 || length == 7 || length == 9 || length == 11 || length == 13 || length == 15) {
+	if !(length == 3 || length == 5 || length == 7 || length == 9 || length == 11 || length == 13 || length == 15) {
 		HS400(w)
 		return
 	}
@@ -87,6 +111,40 @@ func geohash(w http.ResponseWriter, r *http.Request) {
 		Resd    float64 `json:"res_d"`
 		Resm    float64 `json:"res_m"`
 	}{lat, lon, hash, resd, resm}
+	//
+	jresult, err := json.Marshal(resultx)
+	if err != nil {
+		HS500(w)
+		return
+	}
+	//
+	HS200j(w, jresult)
+}
+
+func hashgeo(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	//
+	hash := vars["hash"]
+	if len(hash) < 3 {
+		HS400(w)
+		return
+	}
+	if len(hash) > 15 {
+		hash = hash[0:15]
+	}
+	//
+	p, ok := geomys.HashGeo(hash)
+	if !ok {
+		HS400(w)
+		return
+	}
+	//
+	lat, lon := p.Geo()
+	resultx := struct {
+		Lat     float64 `json:"lat"`
+		Lon     float64 `json:"lon"`
+		Geohash string  `json:"geohash"`
+	}{lat, lon, hash}
 	//
 	jresult, err := json.Marshal(resultx)
 	if err != nil {
