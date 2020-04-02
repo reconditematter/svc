@@ -67,7 +67,8 @@ func computeKFunction(w http.ResponseWriter, r *http.Request) {
 	const D = 181
 	var h [D]float64
 	compute := func() {
-		runtime.GOMAXPROCS(int(ncpu))
+		maxcpu := runtime.GOMAXPROCS(int(ncpu))
+		defer runtime.GOMAXPROCS(maxcpu)
 		n := int(count)
 		points := make([]ons2.Point, n)
 		for i := range points {
