@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"time"
 )
 
 // GeoMatrix -- configures the service for the router `R`.
@@ -40,6 +41,7 @@ Input:
 
 Output:
 {
+ "duration_msec:___,
  "count":___,
  "distances":
   [
@@ -222,6 +224,7 @@ type jrep struct {
 }
 
 func matloc(w http.ResponseWriter, r *http.Request, loc []location, dosort bool) {
+	start := time.Now()
 	n := len(loc)
 	crd := make([][2]float64, n)
 	for i, loci := range loc {
@@ -246,13 +249,16 @@ func matloc(w http.ResponseWriter, r *http.Request, loc []location, dosort bool)
 	}
 	//
 	resultx := struct {
-		Count int    `json:"count"`
-		Dist  []jrep `json:"distances"`
-	}{len(result), result}
+		Duration int64  `json:"duration_msec"`
+		Count    int    `json:"count"`
+		Dist     []jrep `json:"distances"`
+	}{0, len(result), result}
 	//
 	if dosort {
 		sort.Sort(distslice(resultx.Dist))
 	}
+	//
+	resultx.Duration = time.Since(start).Milliseconds()
 	//
 	resultj, err := json.Marshal(resultx)
 	if err != nil {
