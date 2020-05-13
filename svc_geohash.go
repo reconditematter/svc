@@ -13,19 +13,19 @@ import (
 
 // GeoHash -- configures the service for the router `R`.
 func GeoHash(R *mux.Router) {
-	R.Handle("/api/reconditematter/geohash", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageGeoHash)))
-	R.Handle("/api/reconditematter/geohash/{length}/lat/{lat}/lon/{lon}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(geohash)))
+	R.Handle("/api/geohash", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageGeoHash)))
+	R.Handle("/api/geohash/{length}/lat/{lat}/lon/{lon}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(geohash)))
 }
 
 // HashGeo -- configures the service for the router `R`.
 func HashGeo(R *mux.Router) {
-	R.Handle("/api/reconditematter/hashgeo", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageHashGeo)))
-	R.Handle("/api/reconditematter/hashgeo/{hash}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(hashgeo)))
+	R.Handle("/api/hashgeo", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageHashGeo)))
+	R.Handle("/api/hashgeo/{hash}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(hashgeo)))
 }
 
 func usageGeoHash(w http.ResponseWriter, r *http.Request) {
 	doc := `
-/geohash/{length}/lat/{lat}/lon/{lon} -- returns the geohash of the given {length} for the geographic coordinates {lat},{lon}.
+/api/geohash/{length}/lat/{lat}/lon/{lon} -- returns the geohash of the given {length} for the geographic coordinates {lat},{lon}.
 
 Input:
 {length} = 3,5,7,9,11,13,15 -- the length of the computed geohash
@@ -51,7 +51,7 @@ Output:
 
 func usageHashGeo(w http.ResponseWriter, r *http.Request) {
 	doc := `
-/hashgeo/{hash} -- returns the geographic coordinates encoded in the given {hash}.
+/api/hashgeo/{hash} -- returns the geographic coordinates encoded in the given {hash}.
 
 Input:
 {hash} -- the geohash to decode

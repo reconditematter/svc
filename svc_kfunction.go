@@ -16,13 +16,13 @@ import (
 
 // KFunction -- configures the service for the router `R`.
 func KFunction(R *mux.Router) {
-	R.Handle("/api/reconditematter/kfunction", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageKFunction)))
-	R.Handle("/api/reconditematter/kfunction/{count}/ncpu/{ncpu}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(computeKFunction)))
+	R.Handle("/api/kfunction", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageKFunction)))
+	R.Handle("/api/kfunction/{count}/ncpu/{ncpu}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(computeKFunction)))
 }
 
 func usageKFunction(w http.ResponseWriter, r *http.Request) {
 	doc := `
-/kfunction/{count}/ncpu/{ncpu} -- computes Ripley's K function for {count} random points on the unit sphere.
+/api/kfunction/{count}/ncpu/{ncpu} -- computes Ripley's K function for {count} random points on the unit sphere.
 
 Input:
 {count} = 2,...,1000

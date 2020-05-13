@@ -13,17 +13,17 @@ import (
 
 // RandomNames -- configures the service for the router `R`.
 func RandomNames(R *mux.Router) {
-	R.Handle("/api/reconditematter/randomnames", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageRandomNames)))
-	R.Handle("/api/reconditematter/randomnames/{count}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(getnamesb)))
-	R.Handle("/api/reconditematter/randomnames/{count}/f", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(getnamesf)))
-	R.Handle("/api/reconditematter/randomnames/{count}/m", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(getnamesm)))
+	R.Handle("/api/randomnames", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageRandomNames)))
+	R.Handle("/api/randomnames/{count}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(getnamesb)))
+	R.Handle("/api/randomnames/{count}/f", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(getnamesf)))
+	R.Handle("/api/randomnames/{count}/m", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(getnamesm)))
 }
 
 func usageRandomNames(w http.ResponseWriter, r *http.Request) {
 	doc := `
-/randomnames/{count} -- returns {count} random names.
-/randomnames/{count}/f -- returns {count} random female names.
-/randomnames/{count}/m -- returns {count} random male names.
+/api/randomnames/{count} -- returns {count} random names.
+/api/randomnames/{count}/f -- returns {count} random female names.
+/api/randomnames/{count}/m -- returns {count} random male names.
 
 Input:
 {count} = 1,...,1000
