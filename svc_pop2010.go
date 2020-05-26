@@ -35,7 +35,9 @@ Output:
  "lat":___,
  "lon":___,
  "blocks":___,
- "pop2010":___
+ "pop2010":___,
+ "pop2010_female":___,
+ "pop2010_male":___
 }
 
 {blocks} -- US Census block count within the given distance
@@ -93,7 +95,7 @@ func pop2010(w http.ResponseWriter, r *http.Request) {
 	defer infile.Close()
 	//
 	rdr := bufio.NewReader(infile)
-	var record [53]byte
+	var record [151]byte
 	buf := record[:]
 	wgs1984 := geomys.WGS1984()
 	geocen := geomys.NewGeocentric(wgs1984)
@@ -106,18 +108,24 @@ func pop2010(w http.ResponseWriter, r *http.Request) {
 	zmin, zmax := round(qxyz[2]-dist), round(qxyz[2]+dist)
 	filter2 := 0
 	population := int32(0)
+	mpopulation := int32(0)
+	fpopulation := int32(0)
 	const (
-		colid  = 0
-		colpop = colid + 9
-		collat = colpop + 4
-		collon = collat + 8
-		colx   = collon + 8
-		coly   = colx + 8
-		colz   = coly + 8
+		colid   = 0
+		colpop  = colid + 9
+		collat  = colpop + 4
+		collon  = collat + 8
+		colx    = collon + 8
+		coly    = colx + 8
+		colz    = coly + 8
+		colmpop = colz + 8 + 2
+		colfpop = colz + 8 + 2 + 2*24
 	)
 	xs, ys, zs := record[colx:colx+8], record[coly:coly+8], record[colz:colz+8]
 	lats, lons := record[collat:collat+8], record[collon:collon+8]
 	pops := record[colpop : colpop+4]
+	mpops := record[colmpop : colmpop+2]
+	fpops := record[colfpop : colfpop+2]
 	for {
 		_, err := io.ReadFull(rdr, buf)
 		if err == io.EOF {
@@ -149,7 +157,11 @@ func pop2010(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		pop := int32(binary.LittleEndian.Uint32(pops))
+		mpop := int16(binary.LittleEndian.Uint16(mpops))
+		fpop := int16(binary.LittleEndian.Uint16(fpops))
 		population += pop
+		mpopulation += int32(mpop)
+		fpopulation += int32(fpop)
 		filter2++
 	}
 	resultx := struct {
@@ -158,7 +170,9 @@ func pop2010(w http.ResponseWriter, r *http.Request) {
 		Lon      float64 `json:"lon"`
 		Blocks   int     `json:"blocks"`
 		Pop2010  int32   `json:"pop2010"`
-	}{distance, lat, lon, filter2, population}
+		Fpop2010 int32   `json:"pop2010_female"`
+		Mpop2010 int32   `json:"pop2010_male"`
+	}{distance, lat, lon, filter2, population, fpopulation, mpopulation}
 	//
 	jresult, err := json.Marshal(resultx)
 	if err != nil {
