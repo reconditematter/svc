@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 // Pop2010 -- configures the service for the router `R`.
@@ -104,6 +105,8 @@ func mkpyramid(buf [24]int16) pyramid {
 }
 
 func pop2010(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	//
 	round := func(x float64) int64 {
 		y := math.Ceil(math.Abs(x))
 		if x < 0 {
@@ -231,6 +234,7 @@ func pop2010(w http.ResponseWriter, r *http.Request) {
 		filter2++
 	}
 	resultx := struct {
+		Duration int64   `json:"duration_msec"`
 		Distance int64   `json:"distance"`
 		Lat      float64 `json:"lat"`
 		Lon      float64 `json:"lon"`
@@ -240,7 +244,7 @@ func pop2010(w http.ResponseWriter, r *http.Request) {
 		Mpop2010 int32   `json:"pop2010_male"`
 		Fpyramid pyramid `json:"ages_female"`
 		Mpyramid pyramid `json:"ages_male"`
-	}{distance, lat, lon, filter2, population, fpopulation, mpopulation, mkpyramid(fpyr), mkpyramid(mpyr)}
+	}{time.Since(start).Milliseconds(), distance, lat, lon, filter2, population, fpopulation, mpopulation, mkpyramid(fpyr), mkpyramid(mpyr)}
 	//
 	jresult, err := json.Marshal(resultx)
 	if err != nil {
