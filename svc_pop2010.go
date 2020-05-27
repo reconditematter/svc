@@ -37,13 +37,70 @@ Output:
  "blocks":___,
  "pop2010":___,
  "pop2010_female":___,
- "pop2010_male":___
+ "pop2010_male":___,
+ "ages_female":{"age_under5":___,"age_5to9":___,...,"age_85over":___},
+ "ages_male":{"age_under5":___,"age_5to9":___,...,"age_85over":___}
 }
 
 {blocks} -- US Census block count within the given distance
 `
 	//
 	HS200t(w, []byte(doc))
+}
+
+type pyramid struct {
+	Age00to04 int `json:"age_under5"`
+	Age05to09 int `json:"age_5to9"`
+	Age10to14 int `json:"age_10to14"`
+	Age15to17 int `json:"age_15to17"`
+	Age18to19 int `json:"age_18to19"`
+	Age20     int `json:"age_20"`
+	Age21     int `json:"age_21"`
+	Age22to24 int `json:"age_22to24"`
+	Age25to29 int `json:"age_25to29"`
+	Age30to34 int `json:"age_30to34"`
+	Age35to39 int `json:"age_35to39"`
+	Age40to44 int `json:"age_40to44"`
+	Age45to49 int `json:"age_45to49"`
+	Age50to54 int `json:"age_50to54"`
+	Age55to59 int `json:"age_55to59"`
+	Age60to61 int `json:"age_60to61"`
+	Age62to64 int `json:"age_62to64"`
+	Age65to66 int `json:"age_65to66"`
+	Age67to69 int `json:"age_67to69"`
+	Age70to74 int `json:"age_70to74"`
+	Age75to79 int `json:"age_75to79"`
+	Age80to84 int `json:"age_80to84"`
+	Age85over int `json:"age_85over"`
+}
+
+func mkpyramid(buf [24]int16) pyramid {
+	var pyr pyramid
+	// ignore buf[0]
+	pyr.Age00to04 = int(buf[1])
+	pyr.Age05to09 = int(buf[2])
+	pyr.Age10to14 = int(buf[3])
+	pyr.Age15to17 = int(buf[4])
+	pyr.Age18to19 = int(buf[5])
+	pyr.Age20 = int(buf[6])
+	pyr.Age21 = int(buf[7])
+	pyr.Age22to24 = int(buf[8])
+	pyr.Age25to29 = int(buf[9])
+	pyr.Age30to34 = int(buf[10])
+	pyr.Age35to39 = int(buf[11])
+	pyr.Age40to44 = int(buf[12])
+	pyr.Age45to49 = int(buf[13])
+	pyr.Age50to54 = int(buf[14])
+	pyr.Age55to59 = int(buf[15])
+	pyr.Age60to61 = int(buf[16])
+	pyr.Age62to64 = int(buf[17])
+	pyr.Age65to66 = int(buf[18])
+	pyr.Age67to69 = int(buf[19])
+	pyr.Age70to74 = int(buf[20])
+	pyr.Age75to79 = int(buf[21])
+	pyr.Age80to84 = int(buf[22])
+	pyr.Age85over = int(buf[23])
+	return pyr
 }
 
 func pop2010(w http.ResponseWriter, r *http.Request) {
@@ -126,6 +183,8 @@ func pop2010(w http.ResponseWriter, r *http.Request) {
 	pops := record[colpop : colpop+4]
 	mpops := record[colmpop : colmpop+2]
 	fpops := record[colfpop : colfpop+2]
+	var mpyr [24]int16
+	var fpyr [24]int16
 	for {
 		_, err := io.ReadFull(rdr, buf)
 		if err == io.EOF {
@@ -162,6 +221,13 @@ func pop2010(w http.ResponseWriter, r *http.Request) {
 		population += pop
 		mpopulation += int32(mpop)
 		fpopulation += int32(fpop)
+		//
+		for ix := range mpyr {
+			mpyr[ix] += int16(binary.LittleEndian.Uint16(record[colmpop+2*ix : colmpop+2*(ix+1)]))
+		}
+		for ix := range fpyr {
+			fpyr[ix] += int16(binary.LittleEndian.Uint16(record[colfpop+2*ix : colfpop+2*(ix+1)]))
+		}
 		filter2++
 	}
 	resultx := struct {
@@ -172,7 +238,9 @@ func pop2010(w http.ResponseWriter, r *http.Request) {
 		Pop2010  int32   `json:"pop2010"`
 		Fpop2010 int32   `json:"pop2010_female"`
 		Mpop2010 int32   `json:"pop2010_male"`
-	}{distance, lat, lon, filter2, population, fpopulation, mpopulation}
+		Fpyramid pyramid `json:"ages_female"`
+		Mpyramid pyramid `json:"ages_male"`
+	}{distance, lat, lon, filter2, population, fpopulation, mpopulation, mkpyramid(fpyr), mkpyramid(mpyr)}
 	//
 	jresult, err := json.Marshal(resultx)
 	if err != nil {
