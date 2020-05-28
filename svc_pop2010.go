@@ -32,6 +32,7 @@ Input:
 
 Output:
 {
+ "duration_msec":___,
  "distance":___,
  "lat":___,
  "lon":___,
