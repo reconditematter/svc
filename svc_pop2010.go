@@ -2,8 +2,9 @@ package svc
 
 import (
 	"bufio"
-	"encoding/binary"
+	"encoding/csv"
 	"encoding/json"
+	"github.com/dgraph-io/badger"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/reconditematter/geomys"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -50,6 +52,142 @@ Output:
 	HS200t(w, []byte(doc))
 }
 
+type poploc struct {
+	id       string
+	pop      int
+	lat, lon float64
+	x, y, z  int
+}
+
+var poplocs []poploc
+var popbddb *badger.DB
+
+const geofilename = "nozgeo.txt"
+const popbddbname = "./bddb"
+
+func init() {
+	var err error
+	poplocs = loadpoplocs(geofilename)
+	popbddb, err = badger.Open(badger.DefaultOptions(popbddbname).WithReadOnly(true).WithLoggingLevel(2))
+	if err != nil {
+		panic(err)
+	}
+}
+
+func loadpoplocs(name string) []poploc {
+	file, err := os.Open(name)
+	if err != nil {
+		panic(err)
+	}
+	rdr := csv.NewReader(bufio.NewReader(file))
+	locs := make([]poploc, 0)
+	for {
+		rec, err := rdr.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			panic(err)
+		}
+		//
+		loc := poploc{rec[0], musti(rec[1]), mustf(rec[2]), mustf(rec[3]), musti(rec[4]), musti(rec[5]), musti(rec[6])}
+		locs = append(locs, loc)
+	}
+	//
+	return locs
+}
+
+func mustf(s string) float64 {
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		panic(err)
+	}
+	return f
+}
+
+func musti(s string) int {
+	f, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	return int(f)
+}
+
+func round(x float64) int {
+	y := math.Ceil(math.Abs(x))
+	if x < 0 {
+		return int(-y)
+	}
+	return int(y)
+}
+
+func geosearch(locs []poploc, query geomys.Point, dist float64) []string {
+	spheroid := geomys.WGS1984()
+	geocen := geomys.NewGeocentric(spheroid)
+	xyz := geocen.Forward(query)
+	xmin, xmax := round(xyz[0]-dist), round(xyz[0]+dist)
+	ymin, ymax := round(xyz[1]-dist), round(xyz[1]+dist)
+	zmin, zmax := round(xyz[2]-dist), round(xyz[2]+dist)
+	//
+	ids := make([]string, 0)
+	for _, loc := range locs {
+		if !(xmin <= loc.x && loc.x <= xmax) {
+			continue
+		}
+		if !(ymin <= loc.y && loc.y <= ymax) {
+			continue
+		}
+		if !(zmin <= loc.z && loc.z <= zmax) {
+			continue
+		}
+		//
+		if geomys.Andoyer(spheroid, query, geomys.Geo(loc.lat, loc.lon)) <= dist {
+			ids = append(ids, loc.id)
+		}
+	}
+	//
+	return ids
+}
+
+func popsearch(db *badger.DB, keys []string) []string {
+	vals := make([]string, len(keys))
+	//
+	err := db.View(func(txn *badger.Txn) error {
+		for k, key := range keys {
+			item, err := txn.Get([]byte(key))
+			if err != nil {
+				return err
+			}
+			val, err := item.ValueCopy(nil)
+			if err != nil {
+				return err
+			}
+			vals[k] = string(val)
+		}
+		return nil
+	})
+	//
+	if err != nil {
+		panic(err)
+	}
+	//
+	return vals
+}
+
+func popsummary(recs []string) (pop, mpop, fpop int, mpyr, fpyr [24]int) {
+	for _, rec := range recs {
+		r := strings.Split(rec, ",")
+		pop += musti(r[0])
+		mpop += musti(r[1])
+		fpop += musti(r[25])
+		for k := range mpyr {
+			mpyr[k] += musti(r[k+1])
+			fpyr[k] += musti(r[k+25])
+		}
+	}
+	return
+}
+
 type pyramid struct {
 	Age00to04 int `json:"age_under5"`
 	Age05to09 int `json:"age_5to9"`
@@ -76,7 +214,7 @@ type pyramid struct {
 	Age85over int `json:"age_85over"`
 }
 
-func mkpyramid(buf [24]int16) pyramid {
+func mkpyramid(buf [24]int) pyramid {
 	var pyr pyramid
 	// ignore buf[0]
 	pyr.Age00to04 = int(buf[1])
@@ -108,15 +246,6 @@ func mkpyramid(buf [24]int16) pyramid {
 func pop2010(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	//
-	round := func(x float64) int64 {
-		y := math.Ceil(math.Abs(x))
-		if x < 0 {
-			return int64(-y)
-		}
-		return int64(y)
-	}
-	//
-	const Pop2010File = "nozgeo.bin"
 	vars := mux.Vars(r)
 	distance, err := strconv.ParseInt(vars["distance"], 10, 64)
 	if err != nil {
@@ -148,104 +277,23 @@ func pop2010(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//
-	infile, err := os.Open(Pop2010File)
-	if err != nil {
-		HS500(w)
-		return
-	}
-	defer infile.Close()
+	keys := geosearch(poplocs, geomys.Geo(lat, lon), float64(distance))
+	recs := popsearch(popbddb, keys)
 	//
-	rdr := bufio.NewReader(infile)
-	var record [151]byte
-	buf := record[:]
-	wgs1984 := geomys.WGS1984()
-	geocen := geomys.NewGeocentric(wgs1984)
+	population, mpopulation, fpopulation, mpyr, fpyr := popsummary(recs)
 	//
-	query := geomys.Geo(lat, lon)
-	dist := float64(distance)
-	qxyz := geocen.Forward(query)
-	xmin, xmax := round(qxyz[0]-dist), round(qxyz[0]+dist)
-	ymin, ymax := round(qxyz[1]-dist), round(qxyz[1]+dist)
-	zmin, zmax := round(qxyz[2]-dist), round(qxyz[2]+dist)
-	filter2 := 0
-	population := int32(0)
-	mpopulation := int32(0)
-	fpopulation := int32(0)
-	const (
-		colid   = 0
-		colpop  = colid + 9
-		collat  = colpop + 4
-		collon  = collat + 8
-		colx    = collon + 8
-		coly    = colx + 8
-		colz    = coly + 8
-		colmpop = colz + 8 + 2
-		colfpop = colz + 8 + 2 + 2*24
-	)
-	xs, ys, zs := record[colx:colx+8], record[coly:coly+8], record[colz:colz+8]
-	lats, lons := record[collat:collat+8], record[collon:collon+8]
-	pops := record[colpop : colpop+4]
-	mpops := record[colmpop : colmpop+2]
-	fpops := record[colfpop : colfpop+2]
-	var mpyr [24]int16
-	var fpyr [24]int16
-	for {
-		_, err := io.ReadFull(rdr, buf)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			HS500(w)
-			return
-		}
-		//
-		x := int64(binary.LittleEndian.Uint64(xs))
-		if !(xmin <= x && x <= xmax) {
-			continue
-		}
-		y := int64(binary.LittleEndian.Uint64(ys))
-		if !(ymin <= y && y <= ymax) {
-			continue
-		}
-		z := int64(binary.LittleEndian.Uint64(zs))
-		if !(zmin <= z && z <= zmax) {
-			continue
-		}
-		//
-		lat := math.Float64frombits(binary.LittleEndian.Uint64(lats))
-		lon := math.Float64frombits(binary.LittleEndian.Uint64(lons))
-		//
-		point := geomys.Geo(lat, lon)
-		if geomys.Andoyer(wgs1984, query, point) > dist {
-			continue
-		}
-		pop := int32(binary.LittleEndian.Uint32(pops))
-		mpop := int16(binary.LittleEndian.Uint16(mpops))
-		fpop := int16(binary.LittleEndian.Uint16(fpops))
-		population += pop
-		mpopulation += int32(mpop)
-		fpopulation += int32(fpop)
-		//
-		for ix := range mpyr {
-			mpyr[ix] += int16(binary.LittleEndian.Uint16(record[colmpop+2*ix : colmpop+2*(ix+1)]))
-		}
-		for ix := range fpyr {
-			fpyr[ix] += int16(binary.LittleEndian.Uint16(record[colfpop+2*ix : colfpop+2*(ix+1)]))
-		}
-		filter2++
-	}
 	resultx := struct {
 		Duration int64   `json:"duration_msec"`
 		Distance int64   `json:"distance"`
 		Lat      float64 `json:"lat"`
 		Lon      float64 `json:"lon"`
 		Blocks   int     `json:"blocks"`
-		Pop2010  int32   `json:"pop2010"`
-		Fpop2010 int32   `json:"pop2010_female"`
-		Mpop2010 int32   `json:"pop2010_male"`
+		Pop2010  int     `json:"pop2010"`
+		Fpop2010 int     `json:"pop2010_female"`
+		Mpop2010 int     `json:"pop2010_male"`
 		Fpyramid pyramid `json:"ages_female"`
 		Mpyramid pyramid `json:"ages_male"`
-	}{time.Since(start).Milliseconds(), distance, lat, lon, filter2, population, fpopulation, mpopulation, mkpyramid(fpyr), mkpyramid(mpyr)}
+	}{time.Since(start).Milliseconds(), distance, lat, lon, len(recs), population, fpopulation, mpopulation, mkpyramid(fpyr), mkpyramid(mpyr)}
 	//
 	jresult, err := json.Marshal(resultx)
 	if err != nil {
