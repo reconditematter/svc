@@ -149,7 +149,7 @@ func geosearch(locs []poploc, query geomys.Point, dist float64) []string {
 	return ids
 }
 
-func popsearch(db *badger.DB, keys []string) []string {
+func popsearch(db *badger.DB, keys []string) ([]string, error) {
 	vals := make([]string, len(keys))
 	//
 	err := db.View(func(txn *badger.Txn) error {
@@ -168,10 +168,10 @@ func popsearch(db *badger.DB, keys []string) []string {
 	})
 	//
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	//
-	return vals
+	return vals, nil
 }
 
 func popsummary(recs []string) (pop, mpop, fpop int, mpyr, fpyr [24]int) {
@@ -278,7 +278,11 @@ func pop2010(w http.ResponseWriter, r *http.Request) {
 	}
 	//
 	keys := geosearch(poplocs, geomys.Geo(lat, lon), float64(distance))
-	recs := popsearch(popbddb, keys)
+	recs, err := popsearch(popbddb, keys)
+	if err != nil {
+		HS500(w)
+		return
+	}
 	//
 	population, mpopulation, fpopulation, mpyr, fpyr := popsummary(recs)
 	//
