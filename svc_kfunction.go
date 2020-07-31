@@ -16,8 +16,8 @@ import (
 
 // KFunction -- configures the service for the router `R`.
 func KFunction(R *mux.Router) {
-	R.Handle("/api/kfunction", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageKFunction)))
-	R.Handle("/api/kfunction/{count}/ncpu/{ncpu}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(computeKFunction)))
+	R.Handle("/api/kfunction", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageKFunction))).Methods("GET")
+	R.Handle("/api/kfunction/{count}/ncpu/{ncpu}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(computeKFunction))).Methods("GET")
 }
 
 func usageKFunction(w http.ResponseWriter, r *http.Request) {

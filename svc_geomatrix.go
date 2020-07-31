@@ -16,13 +16,13 @@ import (
 
 // GeoMatrix -- configures the service for the router `R`.
 func GeoMatrix(R *mux.Router) {
-	R.Handle("/api/geomatrix", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageGeoMatrix)))
-	R.Handle("/api/geomatrix/distances", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(matcomp)))
-	R.Handle("/api/geomatrix/usbig10", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(matbig10)))
-	R.Handle("/api/geomatrix/uscap50", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(matcap50)))
-	R.Handle("/api/geomatrix/usbig10/sort", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(matbig10s)))
-	R.Handle("/api/geomatrix/uscap50/sort", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(matcap50s)))
-	R.Handle("/api/geomatrix/compute/sort", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(matcomps)))
+	R.Handle("/api/geomatrix", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageGeoMatrix))).Methods("GET")
+	R.Handle("/api/geomatrix/distances", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(matcomp))).Methods("POST")
+	R.Handle("/api/geomatrix/usbig10", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(matbig10))).Methods("GET")
+	R.Handle("/api/geomatrix/uscap50", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(matcap50))).Methods("GET")
+	R.Handle("/api/geomatrix/usbig10/sort", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(matbig10s))).Methods("GET")
+	R.Handle("/api/geomatrix/uscap50/sort", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(matcap50s))).Methods("GET")
+	R.Handle("/api/geomatrix/distances/sort", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(matcomps))).Methods("POST")
 }
 
 func usageGeoMatrix(w http.ResponseWriter, r *http.Request) {

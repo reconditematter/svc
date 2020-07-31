@@ -13,14 +13,14 @@ import (
 
 // GeoHash -- configures the service for the router `R`.
 func GeoHash(R *mux.Router) {
-	R.Handle("/api/geohash", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageGeoHash)))
-	R.Handle("/api/geohash/{length}/lat/{lat}/lon/{lon}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(geohash)))
+	R.Handle("/api/geohash", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageGeoHash))).Methods("GET")
+	R.Handle("/api/geohash/{length}/lat/{lat}/lon/{lon}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(geohash))).Methods("GET")
 }
 
 // HashGeo -- configures the service for the router `R`.
 func HashGeo(R *mux.Router) {
-	R.Handle("/api/hashgeo", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageHashGeo)))
-	R.Handle("/api/hashgeo/{hash}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(hashgeo)))
+	R.Handle("/api/hashgeo", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageHashGeo))).Methods("GET")
+	R.Handle("/api/hashgeo/{hash}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(hashgeo))).Methods("GET")
 }
 
 func usageGeoHash(w http.ResponseWriter, r *http.Request) {

@@ -13,10 +13,10 @@ import (
 
 // RandomNames -- configures the service for the router `R`.
 func RandomNames(R *mux.Router) {
-	R.Handle("/api/randomnames", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageRandomNames)))
-	R.Handle("/api/randomnames/{count}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(getnamesb)))
-	R.Handle("/api/randomnames/{count}/f", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(getnamesf)))
-	R.Handle("/api/randomnames/{count}/m", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(getnamesm)))
+	R.Handle("/api/randomnames", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageRandomNames))).Methods("GET")
+	R.Handle("/api/randomnames/{count}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(getnamesb))).Methods("GET")
+	R.Handle("/api/randomnames/{count}/f", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(getnamesf))).Methods("GET")
+	R.Handle("/api/randomnames/{count}/m", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(getnamesm))).Methods("GET")
 }
 
 func usageRandomNames(w http.ResponseWriter, r *http.Request) {

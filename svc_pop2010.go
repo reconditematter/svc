@@ -19,8 +19,8 @@ import (
 
 // Pop2010 -- configures the service for the router `R`.
 func Pop2010(R *mux.Router) {
-	R.Handle("/api/pop2010", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usagePop2010)))
-	R.Handle("/api/pop2010/{distance}/lat/{lat}/lon/{lon}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(pop2010)))
+	R.Handle("/api/pop2010", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usagePop2010))).Methods("GET")
+	R.Handle("/api/pop2010/{distance}/lat/{lat}/lon/{lon}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(pop2010))).Methods("GET")
 }
 
 func usagePop2010(w http.ResponseWriter, r *http.Request) {

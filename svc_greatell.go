@@ -14,8 +14,8 @@ import (
 
 // GreatEll -- configures the service for the router `R`.
 func GreatEll(R *mux.Router) {
-	R.Handle("/api/greatell", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageGreatEll)))
-	R.Handle("/api/greatell/{count}/lat1/{lat1}/lon1/{lon1}/lat2/{lat2}/lon2/{lon2}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(greatell)))
+	R.Handle("/api/greatell", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(usageGreatEll))).Methods("GET")
+	R.Handle("/api/greatell/{count}/lat1/{lat1}/lon1/{lon1}/lat2/{lat2}/lon2/{lon2}", handlers.LoggingHandler(os.Stderr, http.HandlerFunc(greatell))).Methods("GET")
 }
 
 func usageGreatEll(w http.ResponseWriter, r *http.Request) {
