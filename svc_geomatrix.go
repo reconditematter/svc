@@ -45,7 +45,7 @@ Input:
 
 Output:
 {
- "duration_msec:___,
+ "duration_ms:___,
  "count":___,
  "distances":
   [
@@ -253,7 +253,7 @@ func matloc(w http.ResponseWriter, r *http.Request, loc []location, dosort bool)
 	}
 	//
 	resultx := struct {
-		Duration int64  `json:"duration_msec"`
+		Duration int64  `json:"duration_ms"`
 		Count    int    `json:"count"`
 		Dist     []jrep `json:"distances"`
 	}{0, len(result), result}

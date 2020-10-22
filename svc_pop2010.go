@@ -38,7 +38,7 @@ Input:
 
 Output:
 {
- "duration_msec":___,
+ "duration_ms":___,
  "distance":___,
  "lat":___,
  "lon":___,
@@ -291,7 +291,7 @@ func pop2010(w http.ResponseWriter, r *http.Request) {
 	population, mpopulation, fpopulation, mpyr, fpyr := popsummary(recs)
 	//
 	resultx := struct {
-		Duration int64   `json:"duration_msec"`
+		Duration int64   `json:"duration_ms"`
 		Distance int64   `json:"distance"`
 		Lat      float64 `json:"lat"`
 		Lon      float64 `json:"lon"`

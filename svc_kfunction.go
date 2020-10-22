@@ -34,7 +34,7 @@ Input:
 
 Output:
 {
- "duration_msec":___,
+ "duration_ms":___,
  "count":___,
  "kfunction":[K(0),...,K(180)]
 }
@@ -94,7 +94,7 @@ func computeKFunction(w http.ResponseWriter, r *http.Request) {
 	compute()
 	//
 	resultx := struct {
-		Duration  int64      `json:"duration_msec"`
+		Duration  int64      `json:"duration_ms"`
 		Count     int        `json:"count"`
 		Kfunction [D]float64 `json:"kfunction"`
 	}{time.Since(start).Milliseconds(), int(count), h}

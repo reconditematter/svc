@@ -35,7 +35,7 @@ Input:
 
 Output:
 {
- "duration_msec":___,
+ "duration_ms":___,
  "type":"GreatEllipse",
  "source":{"lat":___,"lon":___},
  "target":{"lat":___,"lon":___},
@@ -151,7 +151,7 @@ func greatell(w http.ResponseWriter, r *http.Request) {
 	result = append(result, geo3{round6(lat2), round6(lon2), round6(azi2)})
 	//
 	resultx := struct {
-		Duration int64   `json:"duration_msec"`
+		Duration int64   `json:"duration_ms"`
 		Type     string  `json:"type"`
 		Source   geo2    `json:"source"`
 		Target   geo2    `json:"target"`
