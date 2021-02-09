@@ -30,7 +30,7 @@ Input:
 {level} = 1,...,4 -- the level of hierarchy (1=360 points,...,4=2880 points)
 {lat} -- the geographic latitude of the center, must be in [-90,90]
 {lon} -- the geographic longitude of the center, must be in [-180,180]
-{radius} -- the circle radius in meters, must be in [1,1000000]
+{radius} -- the circle radius in meters, must be in [1000,1000000]
  
 Output:
 {
@@ -85,7 +85,7 @@ func geocircle(w http.ResponseWriter, r *http.Request) {
 		HS400(w)
 		return
 	}
-	if !(1 <= radius && radius <= 1000000) {
+	if !(1000 <= radius && radius <= 1000000) {
 		HS400(w)
 		return
 	}
