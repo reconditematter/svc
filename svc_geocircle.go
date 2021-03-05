@@ -27,7 +27,7 @@ func usageGeoCircle(w http.ResponseWriter, r *http.Request) {
 /api/geocircle/{level}/lat/{lat}/lon/{lon}/radius/{radius} -- generates a geodesic circle around a given geographic location.
  
 Input:
-{level} = 1,...,4 -- the level of hierarchy (1=360 points,...,4=2880 points)
+{level} = 1,...,5 -- the level of details (1=360 points,...,5=5760 points)
 {lat} -- the geographic latitude of the center, must be in [-90,90]
 {lon} -- the geographic longitude of the center, must be in [-180,180]
 {radius} -- the circle radius in meters, must be in [1000,1000000]
@@ -55,7 +55,7 @@ func geocircle(w http.ResponseWriter, r *http.Request) {
 		HS400(w)
 		return
 	}
-	if !(1 <= level && level <= 4) {
+	if !(1 <= level && level <= 5) {
 		HS400(w)
 		return
 	}
@@ -133,8 +133,8 @@ func gengeocircle(c geomys.Point, s float64, level int) (ps []geomys.Point) {
 	if level < 1 {
 		level = 1
 	}
-	if level > 4 {
-		level = 4
+	if level > 5 {
+		level = 5
 	}
 	var n int
 	switch level {
@@ -146,6 +146,8 @@ func gengeocircle(c geomys.Point, s float64, level int) (ps []geomys.Point) {
 		n = 1440
 	case 4:
 		n = 2880
+	case 5:
+		n = 5760
 	}
 	//
 	step := 360.0 / float64(n)
