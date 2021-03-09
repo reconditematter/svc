@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/reconditematter/geomys"
+	"github.com/reconditematter/mym"
 	"math"
 	"net/http"
 	"os"
@@ -38,6 +39,7 @@ Output:
  "type":"GeodesicCircle",
  "center":{"lat":___,"lon":___},
  "radius":___,
+ "length":___,
  "count":___,
  "path":[{"lat":___,"lon":___},...]
 }
@@ -103,8 +105,20 @@ func geocircle(w http.ResponseWriter, r *http.Request) {
 		}
 		return float64(y) / 1000000000
 	}
+	round2 := func(x float64) float64 {
+		y := int64(math.Abs(x)*100 + 0.5)
+		if x < 0 {
+			y = -y
+		}
+		return float64(y) / 100
+	}
 	//
 	C := gengeocircle(geomys.Geo(lat, lon), float64(radius), int(level))
+	G := geomys.NewGreatEllipse(geomys.WGS1984())
+	pathlength := round2(mym.AccuSum(len(C)-1, func(i int) float64 {
+		s, _, _ := G.Inverse(C[i], C[i+1])
+		return s
+	}))
 	result := make(geopath2, len(C))
 	for k, pk := range C {
 		lat, lon := pk.Geo()
@@ -116,9 +130,10 @@ func geocircle(w http.ResponseWriter, r *http.Request) {
 		Type     string   `json:"type"`
 		Center   geo2     `json:"center"`
 		Radius   int64    `json:"radius"`
+		Length   float64  `json:"length"`
 		Count    int      `json:"count"`
 		Path     geopath2 `json:"path"`
-	}{time.Since(start).Milliseconds(), "GeodesicCircle", geo2{round9(lat), round9(lon)}, radius, len(result), result}
+	}{time.Since(start).Milliseconds(), "GeodesicCircle", geo2{round9(lat), round9(lon)}, radius, pathlength, len(result), result}
 	//
 	jresult, err := json.Marshal(resultx)
 	if err != nil {
