@@ -276,7 +276,7 @@ func matloc(w http.ResponseWriter, r *http.Request, loc []location, dosort bool)
 func computegeomat(points [][2]float64) (map[[2]int]float64, error) {
 	n := len(points)
 	mat := make(map[[2]int]float64)
-	wgs1984 := geomys.WGS1984()
+	genav := geomys.NewGreatEllipse(geomys.WGS1984())
 	//
 	for i, pi := range points {
 		lati, loni := pi[0], pi[1]
@@ -293,7 +293,7 @@ func computegeomat(points [][2]float64) (map[[2]int]float64, error) {
 			}
 			//
 			p2 := geomys.Geo(latj, lonj)
-			d := geomys.Andoyer(wgs1984, p1, p2)
+			d, _, _ := genav.Inverse(p1, p2)
 			mat[[2]int{i, j}] = d
 		}
 	}
