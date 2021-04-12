@@ -25,7 +25,7 @@ func GeoCircle(R *mux.Router) {
 
 func usageGeoCircle(w http.ResponseWriter, r *http.Request) {
 	doc := `
-/api/geocircle/{level}/lat/{lat}/lon/{lon}/radius/{radius} -- generates a geodesic circle around a given geographic location.
+/api/geocircle/{level}/lat/{lat}/lon/{lon}/radius/{radius} -- generates a circle around a given geographic location.
  
 Input:
 {level} = 1,...,5 -- the level of details (1=360 points,...,5=5760 points)
@@ -36,7 +36,7 @@ Input:
 Output:
 {
  "duration_ms":___,
- "type":"GeodesicCircle",
+ "type":"GeoCircle",
  "center":{"lat":___,"lon":___},
  "radius":___,
  "length":___,
@@ -113,14 +113,14 @@ func geocircle(w http.ResponseWriter, r *http.Request) {
 		return float64(y) / 100
 	}
 	//
-	C := gengeocircle(geomys.Geo(lat, lon), float64(radius), int(level))
-	G := geomys.NewGreatEllipse(geomys.WGS1984())
-	pathlength := round2(mym.AccuSum(len(C)-1, func(i int) float64 {
-		s, _, _ := G.Inverse(C[i], C[i+1])
+	circle := gengeocircle(geomys.Geo(lat, lon), float64(radius), int(level))
+	genav := geomys.NewGreatEllipse(geomys.WGS1984())
+	pathlength := round2(mym.AccuSum(len(circle)-1, func(i int) float64 {
+		s, _, _ := genav.Inverse(circle[i], circle[i+1])
 		return s
 	}))
-	result := make(geopath2, len(C))
-	for k, pk := range C {
+	result := make(geopath2, len(circle))
+	for k, pk := range circle {
 		lat, lon := pk.Geo()
 		result[k] = geo2{Lat: round9(lat), Lon: round9(lon)}
 	}
@@ -133,7 +133,7 @@ func geocircle(w http.ResponseWriter, r *http.Request) {
 		Length   float64  `json:"length"`
 		Count    int      `json:"count"`
 		Path     geopath2 `json:"path"`
-	}{time.Since(start).Milliseconds(), "GeodesicCircle", geo2{round9(lat), round9(lon)}, radius, pathlength, len(result), result}
+	}{time.Since(start).Milliseconds(), "GeoCircle", geo2{round9(lat), round9(lon)}, radius, pathlength, len(result), result}
 	//
 	jresult, err := json.Marshal(resultx)
 	if err != nil {
@@ -167,13 +167,13 @@ func gengeocircle(c geomys.Point, s float64, level int) (ps []geomys.Point) {
 	//
 	step := 360.0 / float64(n)
 	ps = make([]geomys.Point, n+1)
-	G := geomys.NewGeodesic(geomys.WGS1984())
+	genav := geomys.NewGreatEllipse(geomys.WGS1984())
 	for k := 0; k < n; k++ {
 		alpha := float64(k) * step
 		if alpha > 180 {
 			alpha -= 360
 		}
-		p, _ := G.Direct(c, alpha, s)
+		p, _ := genav.Direct(c, alpha, s)
 		ps[k] = p
 	}
 	ps[n] = ps[0]
