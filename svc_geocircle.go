@@ -98,31 +98,16 @@ func geocircle(w http.ResponseWriter, r *http.Request) {
 	}
 	type geopath2 []geo2
 	//
-	round9 := func(x float64) float64 {
-		y := int64(math.Abs(x)*1000000000 + 0.5)
-		if x < 0 {
-			y = -y
-		}
-		return float64(y) / 1000000000
-	}
-	round2 := func(x float64) float64 {
-		y := int64(math.Abs(x)*100 + 0.5)
-		if x < 0 {
-			y = -y
-		}
-		return float64(y) / 100
-	}
-	//
 	circle := gengeocircle(geomys.Geo(lat, lon), float64(radius), int(level))
 	genav := geomys.NewGreatEllipse(geomys.WGS1984())
-	pathlength := round2(mym.AccuSum(len(circle)-1, func(i int) float64 {
+	pathlength := math.Round(mym.AccuSum(len(circle)-1, func(i int) float64 {
 		s, _, _ := genav.Inverse(circle[i], circle[i+1])
 		return s
-	}))
+	})*1e2) / 1e2
 	result := make(geopath2, len(circle))
 	for k, pk := range circle {
 		lat, lon := pk.Geo()
-		result[k] = geo2{Lat: round9(lat), Lon: round9(lon)}
+		result[k] = geo2{Lat: math.Round(lat*1e8) / 1e8, Lon: math.Round(lon*1e8) / 1e8}
 	}
 	//
 	resultx := struct {
@@ -133,7 +118,7 @@ func geocircle(w http.ResponseWriter, r *http.Request) {
 		Length   float64  `json:"length"`
 		Count    int      `json:"count"`
 		Path     geopath2 `json:"path"`
-	}{time.Since(start).Milliseconds(), "GeoCircle", geo2{round9(lat), round9(lon)}, radius, pathlength, len(result), result}
+	}{time.Since(start).Milliseconds(), "GeoCircle", geo2{math.Round(lat*1e8) / 1e8, math.Round(lon*1e8) / 1e8}, radius, pathlength, len(result), result}
 	//
 	jresult, err := json.Marshal(resultx)
 	if err != nil {
