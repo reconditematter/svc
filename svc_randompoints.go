@@ -76,13 +76,6 @@ func randomPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//
-	round9 := func(x float64) float64 {
-		y := int64(math.Abs(x)*1000000000 + 0.5)
-		if x < 0 {
-			y = -y
-		}
-		return float64(y) / 1000000000
-	}
 	result := ons2.CellRnd1x1(int(lat), int(lon), int(count))
 	type latlon struct {
 		Lat float64 `json:"lat"`
@@ -97,7 +90,7 @@ func randomPoints(w http.ResponseWriter, r *http.Request) {
 	}{time.Since(start).Milliseconds(), latlon{float64(lat), float64(lon)}, latlon{float64(lat + 1), float64(lon + 1)}, count, make([]latlon, count)}
 	for k, p := range result {
 		lat, lon := p.Geo()
-		resultx.Points[k] = latlon{round9(lat), round9(lon)}
+		resultx.Points[k] = latlon{math.Round(lat*1e8) / 1e8, math.Round(lon*1e8) / 1e8}
 	}
 	resultj, err := json.Marshal(resultx)
 	if err != nil {
