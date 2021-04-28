@@ -117,21 +117,6 @@ func greatell(w http.ResponseWriter, r *http.Request) {
 	}
 	type geopath []geo3
 	//
-	round3 := func(x float64) float64 {
-		y := int64(math.Abs(x)*1000 + 0.5)
-		if x < 0 {
-			y = -y
-		}
-		return float64(y) / 1000
-	}
-	round6 := func(x float64) float64 {
-		y := int64(math.Abs(x)*1000000 + 0.5)
-		if x < 0 {
-			y = -y
-		}
-		return float64(y) / 1000000
-	}
-	//
 	result := make(geopath, 0)
 	source := geomys.Geo(lat1, lon1)
 	target := geomys.Geo(lat2, lon2)
@@ -139,16 +124,16 @@ func greatell(w http.ResponseWriter, r *http.Request) {
 	ell := geomys.NewGreatEllipse(sph)
 	s12, azi1, azi2 := ell.Inverse(source, target)
 	//
-	result = append(result, geo3{round6(lat1), round6(lon1), round6(azi1)})
+	result = append(result, geo3{math.Round(lat1*1e8) / 1e8, math.Round(lon1*1e8) / 1e8, math.Round(azi1*1e8) / 1e8})
 	//
 	step := s12 / float64(count-1)
 	for k := 1; k < int(count)-1; k++ {
 		loc, azi := ell.Direct(source, azi1, float64(k)*step)
 		t1, t2 := loc.Geo()
-		result = append(result, geo3{round6(t1), round6(t2), round6(azi)})
+		result = append(result, geo3{math.Round(t1*1e8) / 1e8, math.Round(t2*1e8) / 1e8, math.Round(azi*1e8) / 1e8})
 	}
 	//
-	result = append(result, geo3{round6(lat2), round6(lon2), round6(azi2)})
+	result = append(result, geo3{math.Round(lat2*1e8) / 1e8, math.Round(lon2*1e8) / 1e8, math.Round(azi2*1e8) / 1e8})
 	//
 	resultx := struct {
 		Duration int64   `json:"duration_ms"`
@@ -159,7 +144,7 @@ func greatell(w http.ResponseWriter, r *http.Request) {
 		Distance float64 `json:"distance"`
 		Step     float64 `json:"step"`
 		Path     geopath `json:"path"`
-	}{time.Since(start).Milliseconds(), "GreatEllipse", geo2{result[0].Lat, result[0].Lon}, geo2{result[len(result)-1].Lat, result[len(result)-1].Lon}, len(result), round3(s12), round3(step), result}
+	}{time.Since(start).Milliseconds(), "GreatEllipse", geo2{result[0].Lat, result[0].Lon}, geo2{result[len(result)-1].Lat, result[len(result)-1].Lon}, len(result), math.Round(s12*1e3) / 1e3, math.Round(step*1e3) / 1e3, result}
 	//
 	jresult, err := json.Marshal(resultx)
 	if err != nil {
